@@ -173,7 +173,7 @@ func getAPIEndpoint() string {
 // NewClient initialize an API client instance with API key and secret key.
 // You should always call this function before using this SDK.
 // Services will be created by the form client.NewXXXService().
-func NewClient(apiKey, secretKey string) *Client {
+func NewClient(apiKey, secretKey, proxy string) *Client {
 	return &Client{
 		APIKey:     apiKey,
 		SecretKey:  secretKey,
@@ -184,14 +184,48 @@ func NewClient(apiKey, secretKey string) *Client {
 	}
 }
 
+// NewClientWithProxy initialize an API client instance with API key and secret key.
+// You should always call this function before using this SDK.
+// Services will be created by the form client.NewXXXService().
+func NewClientWithProxy(apiKey, secretKey, proxy string) *Client {
+	var client *http.Client
+	if proxy != "" {
+		uri, _ := url.Parse(proxy)
+		tr := &http.Transport{
+			Proxy: http.ProxyURL(uri),
+		}
+		client = &http.Client{Transport: tr}
+	} else {
+		client = http.DefaultClient
+	}
+	return &Client{
+		APIKey:     apiKey,
+		SecretKey:  secretKey,
+		BaseURL:    getAPIEndpoint(),
+		UserAgent:  "Binance/golang",
+		HTTPClient: client,
+		Logger:     log.New(os.Stderr, "Binance-golang ", log.LstdFlags),
+	}
+}
+
 // NewFuturesClient initialize client for futures API
 func NewFuturesClient(apiKey, secretKey string) *futures.Client {
 	return futures.NewClient(apiKey, secretKey)
 }
 
+// NewFuturesClient initialize client for futures API
+func NewFuturesClientWithProxy(apiKey, secretKey string, proxy string) *futures.Client {
+	return futures.NewClientWithProxy(apiKey, secretKey, proxy)
+}
+
 // NewDeliveryClient initialize client for coin-M futures API
 func NewDeliveryClient(apiKey, secretKey string) *delivery.Client {
 	return delivery.NewClient(apiKey, secretKey)
+}
+
+// NewDeliveryClient initialize client for coin-M futures API
+func NewDeliveryClientWithProxy(apiKey, secretKey string, proxy string) *delivery.Client {
+	return delivery.NewClientWithProxy(apiKey, secretKey, proxy)
 }
 
 type doFunc func(req *http.Request) (*http.Response, error)
